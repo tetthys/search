@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/10.5/phpunit.xsd"
+    bootstrap="vendor/autoload.php"
+    colors="true"
+    beStrictAboutChangesToGlobalState="true"
+    beStrictAboutOutputDuringTests="true"
+    cacheResult="true"
+    executionOrder="random"
+    failOnRisky="true"
+    failOnWarning="true"
+    stopOnFailure="false"
+>
+    <testsuites>
+        <testsuite name="Feature">
+            <directory>tests/Feature</directory>
+        </testsuite>
+        <testsuite name="Doubles">
+            <directory>tests/Doubles</directory>
+        </testsuite>
+    </testsuites>
+
+    <coverage>
+        <include>
+            <directory suffix=".php">src</directory>
+        </include>
+        <report>
+            <text outputFile="php://stdout" showUncoveredFiles="false"/>
+            <html outputDirectory="build/coverage-html"/>
+            <clover outputFile="build/coverage.xml"/>
+        </report>
+    </coverage>
+
+    <php>
+        <env name="APP_ENV" value="testing"/>
+        <env name="COMPOSER_CACHE_DIR" value="/tmp/composer-cache"/>
+    </php>
+</phpunit>

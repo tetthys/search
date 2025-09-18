@@ -1,0 +1,37 @@
+{
+  "name": "tetthys/search",
+  "description": "Abstract, trait, and interface set for building extensible search services with A/C/D separation and testability.",
+  "type": "library",
+  "license": "MIT",
+  "version": "0.0.1",
+  "require": {
+    "php": "^8.3"
+  },
+  "require-dev": {
+    "pestphp/pest": "^2.34",
+    "pestphp/pest-plugin-arch": "^2.0",
+    "fakerphp/faker": "^1.23"
+  },
+  "autoload": {
+    "psr-4": {
+      "Tetthys\\Search\\": "src/Search/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Tests\\": "tests/",
+      "Tests\\Doubles\\": "tests/Doubles/"
+    }
+  },
+  "scripts": {
+    "test": "pest"
+  },
+  "config": {
+    "sort-packages": true,
+    "allow-plugins": {
+      "pestphp/pest-plugin": true
+    }
+  },
+  "minimum-stability": "stable",
+  "prefer-stable": true
+}

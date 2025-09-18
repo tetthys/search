@@ -1,0 +1,28 @@
+services:
+  composer:
+    image: composer:2
+    working_dir: /app
+    volumes:
+      - ./:/app:cached
+      - composer-cache:/tmp/composer-cache
+    environment:
+      COMPOSER_CACHE_DIR: /tmp/composer-cache
+    tty: true
+    stdin_open: true
+
+  php:
+    image: php:8.3-cli
+    working_dir: /app
+    volumes:
+      - ./:/app:cached
+      - composer-cache:/tmp/composer-cache
+    environment:
+      COMPOSER_CACHE_DIR: /tmp/composer-cache
+    tty: true
+    stdin_open: true
+    depends_on:
+      - composer
+
+volumes:
+  composer-cache:
+    driver: local
