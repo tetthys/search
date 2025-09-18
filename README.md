@@ -1,24 +1,11 @@
 # tetthys/search
 
-> Extensible, testable **search abstraction** for PHP.
-> Interface + Abstract Class + Trait with clean **A/C/D (Action / Calculation / Data)** separation.
+> A lightweight PHP library for building **search services** with a clean A/C/D split:  
+> - **Action** → lifecycle (`search()` is the entrypoint)  
+> - **Calculation** → normalize input (`calcBuildQuery`)  
+> - **Data** → perform real I/O (`dataFetchReal`)  
 
----
-
-## ✨ Features
-
-* **Interface** – minimal contract:
-  `search(mixed $input, ?array $options = null): iterable`
-* **Abstract Class** – orchestrates A/C/D split:
-
-  * **Action**: lifecycle
-  * **Calculation**: input → normalized query
-  * **Data**: real I/O
-* **Trait** – test helpers:
-
-  * Query capture
-  * Test mode & fake fetchers
-  * Deterministic `nowFn`
+This separation makes your search logic **testable**, **reusable**, and **easy to extend**.
 
 ---
 
@@ -26,51 +13,124 @@
 
 ```bash
 composer require tetthys/search
-```
+````
 
 ---
 
-## Quick Example
+## Core Concepts
+
+* **Action (A)** – `search()` orchestrates the lifecycle.
+* **Calculation (C)** – `calcBuildQuery(mixed $input): array`
+  → pure, normalize raw input into a clean query array.
+* **Data (D)** – `dataFetchReal(mixed $query, ?array $options = null): iterable`
+  → impure, execute the real I/O (database, API, filesystem).
+
+> The abstract class already includes `QueryCaptureTestSupportTrait`, which provides helpers for capturing queries, faking fetchers, and overriding time.
+
+---
+
+## Minimal Example
 
 ```php
-final class ProductSearchService extends AbstractSearchService
-{
-    use QueryCaptureTestSupportTrait;
+<?php
 
-    protected function calculate(mixed $input): array
+use Tetthys\Search\AbstractSearchService;
+
+final class BookSearchService extends AbstractSearchService
+{
+    /** Normalize input → query */
+    protected function calcBuildQuery(mixed $input): array
     {
-        $query = ['name' => trim((string)($input['name'] ?? ''))];
-        $this->captureQuery($query);
-        return $query;
+        $q = ['title' => strtolower(trim((string)($input['title'] ?? '')))];
+        $this->captureQuery($q); // expose query to tests
+        return $q;
     }
 
-    protected function fetch(mixed $query, ?array $options = null): iterable
+    /** Execute real fetch */
+    protected function dataFetchReal(mixed $q, ?array $options = null): iterable
     {
-        // Replace with DB/HTTP/etc
-        return [['id' => 1, 'name' => 'Demo']];
+        $books = [
+            ['id' => 1, 'title' => 'The Hobbit'],
+            ['id' => 2, 'title' => 'The Lord of the Rings'],
+            ['id' => 3, 'title' => 'Clean Code'],
+        ];
+
+        if ($q['title'] === '') return $books;
+
+        return array_values(array_filter($books, fn($row) =>
+            str_contains(strtolower($row['title']), $q['title'])
+        ));
     }
 }
 
-$svc = new ProductSearchService();
-$results = $svc->search(['name' => 'demo']);
+// Usage
+$svc = new BookSearchService();
+$results = $svc->search(['title' => 'lord']);
+print_r($results);
+```
+
+Output:
+
+```txt
+Array
+(
+    [0] => Array
+        (
+            [id] => 2
+            [title] => The Lord of the Rings
+        )
+)
 ```
 
 ---
 
-## Testing
+## Testing Support
+
+Since the abstract class includes the trait, you can:
 
 ```php
+$svc = new BookSearchService();
+
+// Enable test mode (bypass real fetch)
 $svc->enableTestMode(true);
-$svc->setFakeFetcher(fn() => [['id' => 99]]);
-$results = $svc->search(['name' => 'x']);
-expect($svc->capturedQueries())->toHaveCount(1);
+
+// Fake fetcher replaces dataFetchReal
+$svc->setFakeFetcher(fn() => [['id' => 99, 'title' => 'Fake Result']]);
+
+// Override clock
+$svc->setNowFn(fn() => new DateTimeImmutable('2025-01-01T00:00:00Z'));
+
+$out = $svc->search(['title' => 'x']);
+
+// Assertions
+assert($out[0]['id'] === 99);
+assert($svc->capturedQueries()[0]['title'] === 'x');
 ```
 
-Run with:
+---
 
-```bash
-./vendor/bin/pest
-```
+## API Summary
+
+* `search(mixed $input, ?array $options = null): iterable`
+* `calcBuildQuery(mixed $input): array` *(implement in subclass)*
+* `dataFetchReal(mixed $query, ?array $options = null): iterable` *(implement in subclass)*
+
+**Test utilities (already included in AbstractSearchService):**
+
+* `captureQuery(array $q): void` – record normalized queries
+* `capturedQueries(): array` – get recorded queries
+* `enableTestMode(bool $on): void` – switch to fake fetcher mode
+* `setFakeFetcher(callable $cb): void` – inject fake fetcher
+* `setNowFn(callable $clock): void` – deterministic clock
+
+---
+
+## Why use this?
+
+* **Clarity** – separate input parsing from data access.
+* **Testability** – verify query normalization without touching the database.
+* **Flexibility** – plug in SQL, HTTP, files, or anything iterable.
+* **Confidence** – deterministic, observable, easy to fake in tests.
 
 ---
 
